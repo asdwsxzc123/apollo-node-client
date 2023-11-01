@@ -1,21 +1,25 @@
-import { NAMESPACE_APPLICATION, CLUSTER_NAME_DEFAULT } from './constants';
 import { ConfigManager } from './config_manager';
-import { PropertiesConfig } from './properties_config';
+import { CLUSTER_NAME_DEFAULT, NAMESPACE_APPLICATION } from './constants';
 import { JSONConfig } from './json_config';
 import { PlainConfig } from './plain_config';
+import { PropertiesConfig } from './properties_config';
 
 export class ConfigService {
-
   private readonly configManager: ConfigManager;
 
-  constructor(private readonly options: {
-    configServerUrl: string;
-    appId: string;
-    clusterName?: string;
-    secret?: string;
-  }) {
+  constructor(
+    private readonly options: {
+      configServerUrl: string;
+      appId: string;
+      env: string;
+      clusterName?: string;
+      token: string;
+    }
+  ) {
     this.options = options;
-    this.options.clusterName = this.options.clusterName ? this.options.clusterName : CLUSTER_NAME_DEFAULT;
+    this.options.clusterName = this.options.clusterName
+      ? this.options.clusterName
+      : CLUSTER_NAME_DEFAULT;
     this.configManager = new ConfigManager({
       ...this.options,
       clusterName: this.options.clusterName,
@@ -25,15 +29,17 @@ export class ConfigService {
   /**
    * getAppConfig, default namespace name: `application`
    */
-  public async getAppConfig(ip? : string): Promise<PropertiesConfig> {
-    const config = await this.getConfig(NAMESPACE_APPLICATION, ip);
+  public async getAppConfig(): Promise<PropertiesConfig> {
+    const config = await this.getConfig(NAMESPACE_APPLICATION);
     return config as PropertiesConfig;
   }
 
   /**
    * get Config by namespaceName
    */
-  public getConfig(namespaceName: string, ip?: string): Promise<PropertiesConfig | JSONConfig | PlainConfig> {
-    return this.configManager.getConfig(namespaceName, ip);
+  public getConfig(
+    namespaceName: string
+  ): Promise<PropertiesConfig | JSONConfig | PlainConfig> {
+    return this.configManager.getConfig(namespaceName);
   }
 }

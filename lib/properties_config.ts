@@ -1,23 +1,15 @@
-import { AuthHeader } from './access';
 import { Config } from './config';
 import { ConfigInterface } from './configInterface';
 import { ConfigChange } from './config_change';
 import { ConfigChangeEvent } from './config_change_event';
 import { CHANGE_EVENT_NAME, PropertyChangeType } from './constants';
-import { Request } from './request';
-import { ConfigOptions } from './types';
 
 export type KVConfigContentType = {
   [key: string]: string;
 };
 
 export class PropertiesConfig extends Config implements ConfigInterface {
-
   private configs: Map<string, string> = new Map();
-
-  constructor(options: ConfigOptions, ip?: string) {
-    super(options, ip);
-  }
 
   public getProperty(key: string, defaultValue?: string): undefined | string {
     const value = this.configs.get(key);
@@ -39,30 +31,41 @@ export class PropertiesConfig extends Config implements ConfigInterface {
     return this.configs.delete(key);
   }
 
-  public addChangeListener(fn: (changeEvent: ConfigChangeEvent<string>) => void): PropertiesConfig {
+  public addChangeListener(
+    fn: (changeEvent: ConfigChangeEvent<string>) => void
+  ): PropertiesConfig {
     this.addListener(CHANGE_EVENT_NAME, fn);
     return this;
   }
 
-  public async _loadAndUpdateConfig(url: string, headers: AuthHeader | undefined): Promise<void> {
-    const loadConfigResp = await Request.fetchConfig<KVConfigContentType>(url, headers);
-    if (loadConfigResp) {
+  public async _loadAndUpdateConfig(app: any): Promise<void> {
+    if (app) {
       // diff change
-      const { added, deleted, changed } = this.diffMap(this.configs, loadConfigResp.configurations);
+      const config = this.list2Obj(app.items);
+      const { added, deleted, changed } = this.diffMap(this.configs, config);
       // update change and emit changeEvent
-      const configChangeEvent = this.updateConfigAndCreateChangeEvent(added,
+      const configChangeEvent = this.updateConfigAndCreateChangeEvent(
+        added,
         deleted,
         changed,
-        loadConfigResp.configurations);
+        config
+      );
       if (configChangeEvent) {
         this.emit(CHANGE_EVENT_NAME, configChangeEvent);
       }
       // update releaseKey
-      this.setReleaseKey(loadConfigResp.releaseKey);
+      this.setReleaseKey(app.releaseKey);
     }
   }
-
-  private diffMap(oldConfigs: Map<string, string>, newConfigs: { [key: string]: string }): {
+  private list2Obj(list) {
+    return list.reduce((total, cur) => {
+      return { ...total ,[cur.key]: cur.value};
+    }, {});
+  }
+  private diffMap(
+    oldConfigs: Map<string, string>,
+    newConfigs: { [key: string]: string }
+  ): {
     added: string[];
     deleted: string[];
     changed: string[];
@@ -91,35 +94,69 @@ export class PropertiesConfig extends Config implements ConfigInterface {
     };
   }
 
-  private updateConfigAndCreateChangeEvent(added: string[], deleted: string[], changed: string[], newConfigs: {
-    [key: string]: string;
-  }): undefined | ConfigChangeEvent<string> {
+  private updateConfigAndCreateChangeEvent(
+    added: string[],
+    deleted: string[],
+    changed: string[],
+    newConfigs: {
+      [key: string]: string;
+    }
+  ): undefined | ConfigChangeEvent<string> {
     const configChanges: Map<string, ConfigChange<string>> = new Map();
 
     for (const addedKey of added) {
       const newConfigValue = newConfigs[addedKey];
-      configChanges.set(addedKey, new ConfigChange<string>(this.getNamespaceName(), addedKey, undefined, newConfigValue, PropertyChangeType.ADDED));
+      configChanges.set(
+        addedKey,
+        new ConfigChange<string>(
+          this.getNamespaceName(),
+          addedKey,
+          undefined,
+          newConfigValue,
+          PropertyChangeType.ADDED
+        )
+      );
       this.setProperty(addedKey, newConfigValue);
     }
 
     for (const deletedKey of deleted) {
-      configChanges.set(deletedKey, new ConfigChange<string>(this.getNamespaceName(), deletedKey, this.configs.get(deletedKey), undefined, PropertyChangeType.DELETED));
+      configChanges.set(
+        deletedKey,
+        new ConfigChange<string>(
+          this.getNamespaceName(),
+          deletedKey,
+          this.configs.get(deletedKey),
+          undefined,
+          PropertyChangeType.DELETED
+        )
+      );
       this.deleteProperty(deletedKey);
     }
 
     for (const changedKey of changed) {
       const newConfigsValue = newConfigs[changedKey];
-      configChanges.set(changedKey, new ConfigChange<string>(this.getNamespaceName(), changedKey, this.configs.get(changedKey), newConfigs[changedKey], PropertyChangeType.MODIFIED));
+      configChanges.set(
+        changedKey,
+        new ConfigChange<string>(
+          this.getNamespaceName(),
+          changedKey,
+          this.configs.get(changedKey),
+          newConfigs[changedKey],
+          PropertyChangeType.MODIFIED
+        )
+      );
       this.setProperty(changedKey, newConfigsValue);
     }
 
     let configChangeEvent: undefined | ConfigChangeEvent<string>;
 
     if (configChanges.size > 0) {
-      configChangeEvent = new ConfigChangeEvent(this.getNamespaceName(), configChanges);
+      configChangeEvent = new ConfigChangeEvent(
+        this.getNamespaceName(),
+        configChanges
+      );
     }
 
     return configChangeEvent;
   }
-
 }

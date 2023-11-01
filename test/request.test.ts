@@ -1,26 +1,29 @@
-import { Request } from '../lib/request';
 import http from 'http';
 import { URL } from 'url';
-import { PropertiesConfig } from '../lib/properties_config';
-import { JSONConfig } from '../lib/json_config';
 import { NOTIFICATION_ID_PLACEHOLDER } from '../lib/constants';
+import { JSONConfig } from '../lib/json_config';
+import { PropertiesConfig } from '../lib/properties_config';
+import { Request } from '../lib/request';
 
 const releaseKey = '20170430092936-dee2d58e74515ff3';
 const ip = '0.0.0.1';
-const configServerUrl = 'http://localhost:3000/';
+const configServerUrl = 'http://localhost:8070/';
 const appId = 'SampleApp';
 const clusterName = 'default';
+const env ='dev';
+const token ='6edda1a26c8b97c0cd3050bfdd8924382e1e68ba5722b58762333ad04b749d49';
 const namespaceName1 = 'test';
 const namespaceName2 = 'first.json';
-
 const fetchConfigResp = {
   appId,
   cluster: clusterName,
-  namespaceName: namespaceName1,
-  configurations: {
-    'portal.elastic.document.type': 'biz',
-    'portal.elastic.cluster.name': 'hermes-es-fws'
-  },
+  // namespaceName: namespaceName1,
+  // configurations: {
+  //   'portal.elastic.document.type': 'biz',
+  //   'portal.elastic.cluster.name': 'hermes-es-fws'
+  // },
+  env,
+  token,
   releaseKey
 };
 

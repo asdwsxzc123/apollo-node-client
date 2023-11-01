@@ -1,16 +1,16 @@
 import { EventEmitter } from 'stream';
-import { Access, AuthHeader } from './access';
 import { NOTIFICATION_ID_PLACEHOLDER } from './constants';
 import { ConfigOptions } from './types';
-import { Request } from './request';
 
 export abstract class Config extends EventEmitter {
-
   private releaseKey = '';
 
   private notificationId = NOTIFICATION_ID_PLACEHOLDER;
 
-  constructor(private readonly options: ConfigOptions, private readonly ip?: string) {
+  constructor(
+    private readonly options: ConfigOptions,
+    private readonly ip?: string
+  ) {
     super();
     this.options = options;
   }
@@ -35,8 +35,8 @@ export abstract class Config extends EventEmitter {
     return this.options.appId;
   }
 
-  protected getSecret(): undefined | string {
-    return this.options.secret;
+  protected getToken(): undefined | string {
+    return this.options.token;
   }
 
   protected getReleaseKey(): string {
@@ -51,19 +51,11 @@ export abstract class Config extends EventEmitter {
     return this.ip;
   }
 
-  public async loadAndUpdateConfig(): Promise<void> {
-    const url = Request.formatConfigUrl({
-      ...this.getConfigOptions(),
-      releaseKey: this.getReleaseKey(),
-      ip: this.getIp(),
-    });
-    let headers: AuthHeader | undefined;
-    const secret = this.getSecret();
-    if (secret) {
-      headers = Access.createAccessHeader(this.getAppId(), url, secret);
-    }
-    return this._loadAndUpdateConfig(url, headers);
+  public async loadAndUpdateConfig(app:any): Promise<void> {
+    return this._loadAndUpdateConfig(app);
   }
 
-  abstract _loadAndUpdateConfig(url: string, headers: AuthHeader | undefined): Promise<void>
+  abstract _loadAndUpdateConfig(
+    app: any
+  ): Promise<void>;
 }
